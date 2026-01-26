@@ -2,10 +2,6 @@ import mongoose from "mongoose";
 
 const cartSchema = new mongoose.Schema(
   {
-    guestId: {
-      type: String,
-      required: true,
-    },
     courses: [
       {
         courseId: {

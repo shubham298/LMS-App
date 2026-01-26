@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.js";
 import courseRoutes from "./routes/courses.js";
 import cartRoutes from "./routes/cart.js";
@@ -20,6 +21,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser('shubham212#9evo466'));
 
 // Routes
 app.use("/courses", courseRoutes);
