@@ -1,20 +1,46 @@
 import express from "express";
 import mongoose from "mongoose";
 import Session from "../models/Session.js";
+import Course from "../models/Course.js";
 
 const router = express.Router();
 
 // GET cart
 router.get("/", async (req, res) => {
-  //Add your code here
-  if (req.signedCookies.sid) {
-    const session = await Session.findById(req.signedCookies.sid);
-    res.status(200).json({
-      message: "Cart fetched from session",
-      cart: session ? (session.data.cart || []) : []
-    });
-  } else {
-    res.status(200).json({ message: "No session found", cart: [] });
+  try {
+    const sid = req.signedCookies.sid;
+    if (sid) {
+      const session = await Session.findById(sid);
+
+      if (!session || !session.data || !session.data.cart || session.data.cart.length === 0) {
+        return res.status(200).json({ message: "Cart is empty", cart: [] });
+      }
+
+      const courseIds = session.data.cart.map((item) => item._id);
+      const courses = await Course.find({ _id: { $in: courseIds } });
+
+      const cartCourses = courses.map((course) => {
+        const { _id, image, name, price } = course;
+        const { quantity } = session.data.cart.find((item) => item._id.toString() === course._id.toString());
+        return {
+          _id: _id,
+          image: image,
+          name: name,
+          price: price,
+          quantity: quantity,
+        };
+      });
+
+      res.status(200).json({
+        message: "Cart fetched from session",
+        cart: cartCourses,
+      });
+    } else {
+      res.status(200).json({ message: "No session found", cart: [] });
+    }
+  } catch (error) {
+    console.error("Fetch cart error:", error);
+    res.status(500).json({ message: "Error fetching cart" });
   }
 });
 
