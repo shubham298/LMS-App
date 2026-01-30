@@ -11,10 +11,10 @@ const CartContext = createContext(undefined);
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
 
-  const addToCart = async (course) => {
+  const addToCart = async (reqData) => {
     // Call backend API with only the added item
     try {
-      const response = await api.post("/cart", { cartItems: [course] });
+      const response = await api.post(`/cart`, reqData);
 
       if (response.data && response.data.cart) {
         setCart(response.data.cart);
@@ -27,7 +27,7 @@ export function CartProvider({ children }) {
   const removeFromCart = async (course) => {
     try {
       const response = await api.delete(
-        `/cart/${encodeURIComponent(course.name)}`
+        `/cart/${course.id}`
       );
       if (response.data && response.data.cart) {
         setCart(response.data.cart);

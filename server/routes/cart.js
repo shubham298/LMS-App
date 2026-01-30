@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import Session from "../models/Session.js";
 
 const router = express.Router();
@@ -20,44 +21,47 @@ router.get("/", async (req, res) => {
 // Add to cart
 router.post("/", async (req, res) => {
   try {
-    const { cartItems } = req.body;
-    if (req.signedCookies.sid) {
-      const session = await Session.findById(req.signedCookies.sid);
+    const { id, name, image, price } = req.body;
+    const sid = req.signedCookies.sid;
 
-      const existingCart = session.data.cart || [];
-      const incomingItems = Array.isArray(cartItems) ? cartItems : [cartItems];
+    if (sid) {
+      // Find item in cart and increment quantity if found
+      const result = await Session.updateOne(
+        { _id: sid, "data.cart._id": id },
+        { $inc: { "data.cart.$.quantity": 1 } }
+      );
 
-      const updatedCart = [...existingCart];
-      incomingItems.forEach((newItem) => {
-        const index = updatedCart.findIndex(
-          (item) => item.name === newItem.name
-        );
-        if (index > -1) {
-          //update quantity of existing item
-          updatedCart[index].quantity =
-            (updatedCart[index].quantity || 0) + (newItem.quantity || 1);
-        } else {
-          //add new item in the existing cart
-          updatedCart.push({ ...newItem, quantity: newItem.quantity || 1 });
+      if (result.matchedCount > 0) {
+        const session = await Session.findById(sid);
+        return res.status(200).json({
+          message: "Cart item quantity incremented",
+          cart: session ? (session.data.cart || []) : [],
+        });
+      }
+
+      // If item not found in cart, add it
+      await Session.updateOne(
+        { _id: sid },
+        {
+          $push: {
+            "data.cart": {
+              _id: id,
+              name: name,
+              price: price,
+              image: image,
+              quantity: 1,
+            },
+          },
         }
+      );
+
+      const updatedSession = await Session.findById(sid);
+      res.status(200).json({
+        message: "Item added to cart",
+        cart: updatedSession ? (updatedSession.data.cart || []) : [],
       });
-
-      session.data = { ...session.data, cart: updatedCart };
-      session.markModified("data");
-      await session.save();
-
-      res.status(200).json({ message: "Cart updated in session", cart: session.data.cart });
     } else {
-      const session = new Session({ data: { cart: cartItems } });
-      await session.save();
-      console.log("===>")
-      console.log("NEW SESSION", JSON.stringify(session.data));
-      res.cookie("sid", session.id, {
-        httpOnly: true,
-        signed: true,
-        maxAge: 1000 * 60 * 60, // 1 hour
-      });
-      res.status(200).json({ message: "Cart updated in session", cart: session.data.cart });
+      res.status(404).json({ message: "Session not found" });
     }
   } catch (error) {
     console.error("Cart error:", error);
@@ -66,27 +70,35 @@ router.post("/", async (req, res) => {
 });
 
 // Remove course from cart
-router.delete("/:courseName", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const { courseName } = req.params;
-    if (req.signedCookies.sid) {
-      const session = await Session.findById(req.signedCookies.sid);
-      if (session && session.data.cart) {
-        const itemIndex = session.data.cart.findIndex(
-          (item) => item.name === courseName
-        );
+    const { id } = req.params;
+    const sid = req.signedCookies.sid;
 
-        if (itemIndex > -1) {
-          if (session.data.cart[itemIndex].quantity > 1) {
-            session.data.cart[itemIndex].quantity -= 1;
-          } else {
-            session.data.cart.splice(itemIndex, 1);
-          }
-          session.markModified("data");
-          await session.save();
-        }
+    if (sid) {
+      // Try to decrement quantity if > 1
+      const result = await Session.updateOne(
+        {
+          _id: sid,
+          "data.cart": { $elemMatch: { _id: id, quantity: { $gt: 1 } } },
+        },
+        { $inc: { "data.cart.$.quantity": -1 } }
+      );
+
+      // If no item was decremented, it means quantity was 1 or item doesn't exist.
+      // So we pull the item from the cart array.
+      if (result.modifiedCount === 0) {
+        await Session.updateOne(
+          { _id: sid },
+          { $pull: { "data.cart": { _id: id } } }
+        );
       }
-      res.status(200).json({ message: "Item removed from cart", cart: session.data.cart });
+
+      const session = await Session.findById(sid);
+      res.status(200).json({
+        message: "Cart updated",
+        cart: session ? (session.data.cart || []) : [],
+      });
     } else {
       res.status(404).json({ message: "Session not found" });
     }
