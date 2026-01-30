@@ -10,6 +10,9 @@ const sessionSchema = new mongoose.Schema(
             type: Number,
             default: Date.now() / 1000 + 60 * 60, //valid for 1 hour
         },
+    },
+    {
+        timestamps: true,
     }
 );
 

@@ -22,7 +22,7 @@ export default function CartItem({ item: { name, image, quantity, price } }) {
         </p>
       </div>
       <button
-        onClick={() => removeFromCart(item)}
+        onClick={() => removeFromCart({ name: name })}
         className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 cursor-pointer"
       >
         <Trash2 className="w-5 h-5" />
