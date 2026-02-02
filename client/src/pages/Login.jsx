@@ -1,11 +1,26 @@
 import React, { useState } from "react";
+import axiosInstance from "../api/axiosInstance";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 export default function Login() {
   const [email, setEmail] = useState("shubham@gmail.com");
   const [password, setPassword] = useState("shubham@123");
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ email, password });
+    //call api to login
+    const response = await axiosInstance.post("/auth/login", { email, password });
+    console.log("test", response);
+    if (response.data.success) {
+      console.log(response.data.user);
+      login(response.data.user.email);
+      navigate("/");
+    } else {
+      console.log(response.data.message);
+      alert(response.data.message);
+    }
   };
 
   return (

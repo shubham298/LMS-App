@@ -1,10 +1,11 @@
 import { createContext, useContext, useState } from "react";
-
+import axiosInstance from "../api/axiosInstance";
+import { useNavigate } from "react-router-dom";
 const AuthContext = createContext(undefined);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState();
-
+  const navigate = useNavigate();
   const login = (email, password) => {
     // In a real app, this would make an API call
     const userData = { email, name: email.split("@")[0] };
@@ -19,6 +20,10 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     setUser(null);
+    //call backend to empty cookies
+    axiosInstance.post("/auth/logout").then(() => {
+      navigate("/");
+    });
   };
 
   return (

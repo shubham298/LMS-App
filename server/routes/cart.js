@@ -16,14 +16,14 @@ router.get("/", async (req, res) => {
         return res.status(200).json({ message: "Cart is empty", cart: [] });
       }
 
-      const courseIds = session.data.cart.map((item) => item._id);
+      const courseIds = session.data.cart.map((item) => item.courseId);
       const courses = await Course.find({ _id: { $in: courseIds } });
 
       const cartCourses = courses.map((course) => {
         const { _id, image, name, price } = course;
-        const { quantity } = session.data.cart.find((item) => item._id.toString() === course._id.toString());
+        const { quantity } = session.data.cart.find((item) => item.courseId.toString() === course._id.toString());
         return {
-          _id: _id,
+          courseId: _id,
           image: image,
           name: name,
           price: price,
@@ -47,13 +47,13 @@ router.get("/", async (req, res) => {
 // Add to cart
 router.post("/", async (req, res) => {
   try {
-    const { id, name, image, price } = req.body;
+    const { courseId } = req.body;
     const sid = req.signedCookies.sid;
 
     if (sid) {
       // Find item in cart and increment quantity if found
       const result = await Session.updateOne(
-        { _id: sid, "data.cart._id": id },
+        { _id: sid, "data.cart.courseId": courseId },
         { $inc: { "data.cart.$.quantity": 1 } }
       );
 
@@ -71,10 +71,7 @@ router.post("/", async (req, res) => {
         {
           $push: {
             "data.cart": {
-              _id: id,
-              name: name,
-              price: price,
-              image: image,
+              courseId: courseId,
               quantity: 1,
             },
           },
@@ -96,9 +93,9 @@ router.post("/", async (req, res) => {
 });
 
 // Remove course from cart
-router.delete("/:id", async (req, res) => {
+router.delete("/:courseId", async (req, res) => {
   try {
-    const { id } = req.params;
+    const { courseId } = req.params;
     const sid = req.signedCookies.sid;
 
     if (sid) {
@@ -106,7 +103,7 @@ router.delete("/:id", async (req, res) => {
       const result = await Session.updateOne(
         {
           _id: sid,
-          "data.cart": { $elemMatch: { _id: id, quantity: { $gt: 1 } } },
+          "data.cart": { $elemMatch: { courseId: courseId, quantity: { $gt: 1 } } },
         },
         { $inc: { "data.cart.$.quantity": -1 } }
       );
@@ -116,7 +113,7 @@ router.delete("/:id", async (req, res) => {
       if (result.modifiedCount === 0) {
         await Session.updateOne(
           { _id: sid },
-          { $pull: { "data.cart": { _id: id } } }
+          { $pull: { "data.cart": { courseId: courseId } } }
         );
       }
 

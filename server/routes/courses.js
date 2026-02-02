@@ -9,12 +9,12 @@ router.get("/", async (req, res) => {
   try {
     const courses = await Course.find();
 
-    // Find session or create new
+    // create guest session
     if (!req.signedCookies.sid) {
       const session = await Session.create({ cart: [] });
       // Set session cookie with 15 minutes expiration
       res.cookie("sid", session.id, {
-        maxAge: 15 * 60 * 1000, // 15 minutes
+        maxAge: 60 * 60 * 1000 * 24, // 1 day
         httpOnly: true,
         signed: true
       });

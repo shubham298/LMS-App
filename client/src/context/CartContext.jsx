@@ -12,26 +12,19 @@ export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
 
   const addToCart = async (reqData) => {
-    // Call backend API with only the added item
     try {
-      const response = await api.post(`/cart`, reqData);
-
-      if (response.data && response.data.cart) {
-        setCart(response.data.cart);
-      }
+      await api.post(`/cart`, reqData);
+      await fetchCart();
     } catch (err) {
       console.error("Failed to sync cart with backend:", err);
     }
   };
 
   const removeFromCart = async (course) => {
+    console.log("course", course);
     try {
-      const response = await api.delete(
-        `/cart/${course.id}`
-      );
-      if (response.data && response.data.cart) {
-        setCart(response.data.cart);
-      }
+      await api.delete(`/cart/${course.courseId}`);
+      await fetchCart();
     } catch (err) {
       console.error("Failed to sync cart removal with backend:", err);
     }
@@ -39,7 +32,7 @@ export function CartProvider({ children }) {
 
   const fetchCart = async () => {
     try {
-      const response = await api.get("/cart");
+      const response = await api.get(`/cart`);
       setCart(response.data.cart || []);
     } catch (error) {
       console.error("Failed to fetch cart:", error);

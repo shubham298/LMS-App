@@ -8,7 +8,11 @@ const sessionSchema = new mongoose.Schema(
         },
         expires: {
             type: Number,
-            default: Date.now() / 1000 + 60 * 60, //valid for 1 hour
+            default: Math.round(Date.now() / 1000 + 60 * 60 * 24 * 1), //valid for 1 day
+        },
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            default: null,
         },
     },
     {
